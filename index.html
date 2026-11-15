@@ -1,168 +1,19 @@
-<!-- index.html -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="utf-8">
 <title>Mumbai Internships & Hackathons</title>
-<style>
-  :root { --bg:#0f1115; --card:#181b22; --line:#272b35; --txt:#e6e8ee; --dim:#8b93a7; --acc:#5eead4; }
-  * { box-sizing:border-box; }
-  body { margin:0; font:15px/1.5 system-ui,sans-serif; background:var(--bg); color:var(--txt); }
-  header { padding:24px 32px; border-bottom:1px solid var(--line); }
-  h1 { margin:0 0 4px; font-size:20px; }
-  .sub { color:var(--dim); font-size:13px; }
-  .stats { display:flex; gap:24px; padding:16px 32px; border-bottom:1px solid var(--line); flex-wrap:wrap; }
-  .stat b { display:block; font-size:22px; color:var(--acc); }
-  .stat span { font-size:12px; color:var(--dim); text-transform:uppercase; letter-spacing:.06em; }
-  .tabs { display:flex; gap:8px; padding:16px 32px 0; }
-  .tab { padding:8px 16px; border:1px solid var(--line); background:none; color:var(--dim);
-         border-radius:8px 8px 0 0; cursor:pointer; font-size:14px; }
-  .tab.on { background:var(--card); color:var(--txt); border-bottom-color:var(--card); }
-  main { padding:0 32px 48px; }
-  .grid { display:grid; gap:12px; grid-template-columns:repeat(auto-fill,minmax(320px,1fr)); padding-top:16px; }
-  .card { background:var(--card); border:1px solid var(--line); border-radius:10px; padding:16px; }
-  .card h3 { margin:0 0 6px; font-size:15px; }
-  .card h3 a { color:var(--txt); text-decoration:none; }
-  .card h3 a:hover { color:var(--acc); }
-  .co { color:var(--dim); font-size:13px; margin-bottom:10px; }
-  .meta { display:flex; gap:8px; flex-wrap:wrap; font-size:12px; }
-  .pill { background:#22262f; border-radius:5px; padding:2px 8px; color:var(--dim); }
-  .pill.pay { color:var(--acc); }
-  .empty { color:var(--dim); padding:32px 0; }
-  .hide { display:none; }
-  .block { padding-top: 32px; }
-  .block h2 { font-size: 15px; margin: 0 0 12px; display: flex; align-items: center; gap: 8px; }
-  .count { background:#22262f; color:var(--acc); font-size:12px; padding:1px 8px; border-radius:10px; font-weight:600; }
-  .filters { display:flex; gap:8px; margin-bottom:14px; flex-wrap:wrap; }
-  .fbtn { padding:6px 14px; border:1px solid var(--line); background:none; color:var(--dim);
-        border-radius:16px; cursor:pointer; font-size:13px; }
-  .fbtn.on { background:var(--card); color:var(--acc); border-color:var(--acc); }
-
-
-</style>
+<link rel="stylesheet" href="/static/style.css">
 </head>
 <body>
-<header>
-  <h1>Mumbai Internships &amp; Hackathons</h1>
-  <div class="sub">Internshala + Devfolio · refreshed on demand</div>
-</header>
-
-<div class="stats">
-  <div class="stat"><b id="c-mumbai">—</b><span>Mumbai internships</span></div>
-  <div class="stat"><b id="c-remote">—</b><span>Remote internships</span></div>
-  <div class="stat"><b id="c-hacks">—</b><span>Hackathons</span></div>
-</div>
-
-<main>
-  <section class="block">
-    <h2>Mumbai internships <span class="count" id="n-mumbai"></span></h2>
-    <div class="grid" id="mumbai"></div>
-  </section>
-
-  <section class="block">
-    <h2>Remote internships <span class="count" id="n-remote"></span></h2>
-    <div class="grid" id="remote"></div>
-  </section>
-
-
-  <section class="block">
-    <h2>Hackathons <span class="count" id="n-hacks"></span></h2>
-    <div class="filters" id="hack-filters">
-            <button class="fbtn on" data-f="all">All</button>
-            <button class="fbtn" data-f="online">Online</button>
-            <button class="fbtn" data-f="mumbai">Near Mumbai</button>
-            <button class="fbtn" data-f="person">In person</button>
-        </div>
-    <div class="grid" id="hacks"></div>
-  </section>
-</main>
-
-<script>
-const fmt = s => s ? s.replace(/\s+/g, " ") : "—";
-const date = s => s ? new Date(s).toLocaleDateString("en-IN", {day:"numeric", month:"short", year:"numeric"}) : "—";
-
-const isRemote = i => /work\s*from\s*home|remote/i.test(i.location || "");
-const isMumbai = i => /mumbai/i.test(i.location || "");
-
-const intCard = i => `
-  <div class="card">
-    <h3><a href="${i.url}" target="_blank" rel="noopener">${i.title}</a></h3>
-    <div class="co">${i.company || "—"}</div>
-    <div class="meta">
-      <span class="pill">${fmt(i.location)}</span>
-      <span class="pill pay">${fmt(i.stipend)}</span>
-      ${i.duration ? `<span class="pill">${fmt(i.duration)}</span>` : ""}
-    </div>
-  </div>`;
-
-const hackCard = h => `
-  <div class="card">
-    <h3><a href="${h.url}" target="_blank" rel="noopener">${h.name}</a></h3>
-    <div class="co">${h.is_online ? "Online" : (h.city || h.location_raw || "Location TBA")} · ${h.status}</div>
-    <div class="meta">
-      <span class="pill">${h.is_online ? "Remote" : "In person"}</span>
-      <span class="pill">${date(h.starts_at)}</span>
-      <span class="pill pay">${h.participants_count} registered</span>
-      ${h.themes && h.themes !== "No Restrictions" ? `<span class="pill">${h.themes}</span>` : ""}
-    </div>
-  </div>`;
-
-
-const NEAR_MUMBAI = ["mumbai", "navi mumbai", "thane", "pune", "panvel", "kalyan", "vasai", "palghar", "nashik"];
-
-const isNearMumbai = h => {
-  const t = `${h.city || ""} ${h.location_raw || ""}`.toLowerCase();
-  return NEAR_MUMBAI.some(c => t.includes(c));
-};
-
-let allHacks = [];
-
-function renderHacks(filter = "all") {
-  const list = allHacks.filter(h => {
-    if (filter === "online") return h.is_online === 1;
-    if (filter === "mumbai") return h.is_online === 0 && isNearMumbai(h);
-    if (filter === "person") return h.is_online === 0 && h.in_india === 1;
-    return true;
-  });
-
-  document.getElementById("hacks").innerHTML =
-    list.length ? list.map(hackCard).join("") : `<div class="empty">Nothing here right now.</div>`;
-  document.getElementById("n-hacks").textContent = list.length;
-  document.getElementById("c-hacks").textContent = list.length;
-}
-
-async function load() {
-  const [ints, hacks] = await Promise.all([
-    fetch("/api/internships?limit=200").then(r => r.json()),
-    fetch("/api/hackathons").then(r => r.json()),
-  ]);
-
-  const remote = ints.filter(i => isRemote(i));
-  const mumbai = ints.filter(i => isMumbai(i) && !isRemote(i));
-
-  const fill = (gridId, countId, statId, items, render, empty) => {
-    document.getElementById(gridId).innerHTML =
-      items.length ? items.map(render).join("") : `<div class="empty">${empty}</div>`;
-    document.getElementById(countId).textContent = items.length;
-    document.getElementById(statId).textContent = items.length;
-  };
-
-  fill("mumbai", "n-mumbai", "c-mumbai", mumbai, intCard, "No Mumbai internships right now.");
-  fill("remote", "n-remote", "c-remote", remote, intCard, "No remote internships right now.");
-
-  allHacks = hacks;
-  renderHacks("all");
-
-  document.querySelectorAll("#hack-filters .fbtn").forEach(btn => {
-    btn.onclick = () => {
-      document.querySelectorAll("#hack-filters .fbtn").forEach(b => b.classList.toggle("on", b === btn));
-      renderHacks(btn.dataset.f);
-    };
-  });
-}
-
-load();
-
-</script>
+<nav>
+  <a href="/" class="brand">Mumbai Internships &amp; Hackathons</a>
+  <div class="links">
+    <a href="/" data-page="internships">Internships</a>
+    <a href="/hackathons" data-page="hackathons">Hackathons</a>
+  </div>
+</nav>
+<main id="app"></main>
+<script src="/static/app.js"></script>
 </body>
 </html>
