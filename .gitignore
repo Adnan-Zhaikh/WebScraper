@@ -1,2 +1,4 @@
 *.db
-*.html
+devfolio_dump.html
+step1_dump.html
+/__pycache__/
