@@ -4,11 +4,17 @@ const date = s => s ? new Date(s).toLocaleDateString("en-IN", {day:"numeric", mo
 const isRemote = i => /work\s*from\s*home|remote/i.test(i.location || "");
 const isMumbai = i => /mumbai/i.test(i.location || "");
 
-const NEAR_MUMBAI = ["mumbai","navi mumbai","thane","pune","panvel","kalyan","vasai","palghar","nashik"];
+const NEAR_MUMBAI = ["mumbai","navi mumbai","thane","panvel","kalyan","vasai","palghar"];
 const isNearMumbai = h => {
   const t = `${h.city || ""} ${h.location_raw || ""}`.toLowerCase();
   return NEAR_MUMBAI.some(c => t.includes(c));
+};
 
+const when = h => {
+  if (h.starts_at && h.ends_at) return `${date(h.starts_at)} – ${date(h.ends_at)}`;
+  if (h.starts_at) return date(h.starts_at);
+  if (h.ends_at) return `ends ${date(h.ends_at)}`;
+  return "Date TBA";
 };
 
 const intCard = i => `
@@ -28,24 +34,17 @@ const hackCard = h => `
 <div class="co">${h.is_online ? "Online" : (h.city || h.location_raw || "Location TBA")} · ${h.status}</div>
 <div class="meta">
 <span class="pill">${h.is_online ? "Remote" : "In person"}</span>
-<span class="pill">${date(h.starts_at)}</span>
+<span class="pill">${when(h)}</span>
 <span class="pill pay">${h.participants_count} registered</span>
 ${h.themes && h.themes !== "No Restrictions" ? `<span class="pill">${h.themes}</span>` : ""}
 </div>
 </div>`;
-const when = h => {
-  if (h.starts_at && h.ends_at) return `${date(h.starts_at)} – ${date(h.ends_at)}`;
-  if (h.starts_at) return date(h.starts_at);
-  if (h.ends_at) return `ends ${date(h.ends_at)}`;
-  return "Date TBA";
-};
-
 
 const section = (title, count, inner) => `
 <section class="block">
 <h2>${title} <span class="count">${count}</span></h2>
 ${inner}
-  </section>`;
+</section>`;
 
 const grid = (items, render, empty) =>
   items.length ? `<div class="grid">${items.map(render).join("")}</div>`
@@ -72,33 +71,41 @@ async function internshipsView() {
 
 // ---------- view: hackathons ----------
 
-async function hackathonsView() {
-  const hacks = await fetch("/api/hackathons").then(r => r.json());
+const FILTERS = [
+  ["all", "All"],
+  ["devfolio", "Devfolio only"],
+  ["online", "Online"],
+  ["mumbai", "Near Mumbai"],
+  ["person", "In person"],
+];
+
+const matchFilter = (h, filter) => {
+  if (filter === "devfolio") return h.source === "devfolio";
+  if (filter === "online") return h.is_online === 1;
+  if (filter === "mumbai") return h.is_online === 0 && isNearMumbai(h);
+  if (filter === "person") return h.is_online === 0 && h.in_india === 1;
+  return true;
+};
+
+function hackathonsView(hacks) {
+  const buttons = FILTERS.map(([key, label]) => {
+    const n = hacks.filter(h => matchFilter(h, key)).length;
+    return `<button class="fbtn${key === "all" ? " on" : ""}" data-f="${key}">${label} <span class="count">${n}</span></button>`;
+  }).join("");
 
   return `
   <header class="page-head">
   <h1>Hackathons</h1>
-  <p class="sub">${hacks.length} events · Devfolio</p>
+  <p class="sub">${hacks.length} open events · Unstop + Devfolio</p>
   </header>
-  <div class="filters" id="hack-filters">
-  <button class="fbtn" data-f="devfolio">Devfolio only</button>
-      <button class="fbtn on" data-f="all">All</button>
-      <button class="fbtn" data-f="online">Online</button>
-      <button class="fbtn" data-f="mumbai">Near Mumbai</button>
-      <button class="fbtn" data-f="person">In person</button>
-    </div>
-    <div id="hack-list"></div>
+  <div class="filters" id="hack-filters">${buttons}</div>
+  <div id="hack-list"></div>
   `;
 }
 
 function bindHackathons(hacks) {
   const render = filter => {
-    const list = hacks.filter(h => {
-      if (filter === "online") return h.is_online === 1;
-      if (filter === "mumbai") return h.is_online === 0 && isNearMumbai(h);
-      if (filter === "person") return h.is_online === 0 && h.in_india === 1;
-      return true;
-    });
+    const list = hacks.filter(h => matchFilter(h, filter));
     document.getElementById("hack-list").innerHTML =
       grid(list, hackCard, "Nothing here right now.");
   };
@@ -143,8 +150,9 @@ async function route() {
     a.classList.toggle("on", a.getAttribute("href") === path));
 
   if (path === "/hackathons") {
-    app.innerHTML = await hackathonsView();
-    bindHackathons(await fetch("/api/hackathons").then(r => r.json()));
+    const hacks = await fetch("/api/hackathons").then(r => r.json());
+    app.innerHTML = hackathonsView(hacks);
+    bindHackathons(hacks);
   } else {
     app.innerHTML = await internshipsView();
     bindRefresh();

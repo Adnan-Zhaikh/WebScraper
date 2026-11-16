@@ -68,43 +68,42 @@ def internships(limit: int = Query(50, le=200)):
     """, (limit,))
 
 @app.get("/api/hackathons")
-def hackathons(status: str | None = None, online: bool | None = None):
-    sql = "SELECT name, url, starts_at, ends_at, is_online, participants_count, themes, status FROM hackathons WHERE 1=1"
-    sql = "SELECT name, url, starts_at, ends_at, is_online, city, location_raw, in_india, participants_count, themes, status FROM hackathons WHERE 1=1"
+def hackathons(status: str | None = None, online: bool | None = None, source: str | None = None):
     sql = """SELECT name, url, starts_at, ends_at, is_online, city, location_raw,
-                participants_count, themes, status
-         FROM hackathons WHERE 1=1"""
-    sql = """SELECT name, url, starts_at, ends_at, is_online, city, location_raw,
-                in_india, participants_count, themes, status
-         FROM hackathons WHERE 1=1"""
-    sql = """SELECT name, url, starts_at, ends_at, is_online, city, location_raw,
-                in_india, participants_count, themes, status, source
-         FROM hackathons
-         WHERE (ends_at IS NULL OR ends_at >= date('now'))
-           AND (:source = '' OR source = :source)"""
-    
-
-
+                    in_india, participants_count, themes, status, source
+             FROM hackathons
+             WHERE (ends_at IS NULL OR substr(ends_at, 1, 10) >= date('now'))"""
     params = []
+
     if status:
         sql += " AND status = ?"
         params.append(status)
     if online is not None:
         sql += " AND is_online = ?"
         params.append(1 if online else 0)
-    sql += " ORDER BY starts_at"
+    if source:
+        sql += " AND source = ?"
+        params.append(source)
 
+    sql += " ORDER BY ends_at ASC"
     return query(sql, params)
+
 
 
 @app.get("/api/stats")
 def stats():
+    
     return {
         "internships": query("SELECT COUNT(*) c FROM listings")[0]["c"],
         "hackathons": query("SELECT COUNT(*) c FROM hackathons")[0]["c"],
         "open_hackathons": query("SELECT COUNT(*) c FROM hackathons WHERE status='open'")[0]["c"],
         "mumbai": query("SELECT COUNT(*) c FROM listings WHERE location LIKE '%Mumbai%'")[0]["c"],
         "remote": query("SELECT COUNT(*) c FROM listings WHERE location LIKE '%home%'")[0]["c"],
+        "open_hackathons": query("""
+            SELECT COUNT(*) c FROM hackathons
+            WHERE ends_at IS NULL OR substr(ends_at, 1, 10) >= date('now')
+        """)[0]["c"],
+
     }
 
 @app.get("/", response_class=HTMLResponse)

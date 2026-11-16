@@ -3,7 +3,7 @@ import json
 import re
 import sqlite3
 import time
-
+from datetime import datetime, timezone
 import httpx
 
 DB = "internships.db"
@@ -38,12 +38,23 @@ def fetch_page(client, page):
 def parse_items(payload):
     data = payload.get("data") or {}
     items = data.get("data") or []
+    today = datetime.now(timezone.utc).date().isoformat()
     rows = []
     for it in items:
         oid = it.get("id")
         if oid is None:
             continue
         public = it.get("public_url") or it.get("seo_url") or ""
+        ends = it.get("end_date")
+        is_online, in_india, city = classify(it)
+
+        if not ends:
+            status = "upcoming"
+        elif ends[:10] < today:
+            status = "past"
+        else:
+            status = "open"
+
         rows.append({
             "uuid": f"unstop-{oid}",
             "slug": None,
@@ -51,21 +62,19 @@ def parse_items(payload):
             "url": f"{BASE}/{public}" if public else None,
             "type": it.get("type"),
             "starts_at": None,
-            "ends_at": it.get("end_date"),
-            "is_online": 1 if (it.get("region") == "online" or it.get("is_online")) else 0,
+            "ends_at": ends,
+            "is_online": is_online,
             "participants_count": it.get("registerCount") or 0,
             "themes": ", ".join(
                 t.get("name") for t in (it.get("filters") or [])
                 if isinstance(t, dict) and t.get("name")
             ),
-            "reg_ends_at": it.get("end_date"),
-            "status": "open" if (it.get("status") or "").lower() in ("open", "live") else "upcoming",
-            "city": (it.get("address_with_country_logo") or {}).get("city") if isinstance(it.get("address_with_country_logo"), dict) else None,
+            "reg_ends_at": ends,
+            "status": status,
+            "city": city,
             "location_raw": it.get("region") or None,
-            "in_india": 0 if (it.get("region") or "").lower() in ("online",) and False else 1,
+            "in_india": in_india,
             "source": "unstop",
-            
-            
         })
 
     return rows, data.get("total"), data.get("last_page")
@@ -86,6 +95,9 @@ def classify(it):
         return 1, 0, city          # online, worldwide
     return 1, 0, city              # online, specific — no venue
 
+def name_key(name, starts_at, ends_at=None):
+    n = re.sub(r"[^a-z0-9]", "", (name or "").lower())
+    return f"{n}|{(starts_at or ends_at or '')[:10]}"
 
 
 def main():
@@ -137,3 +149,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+
