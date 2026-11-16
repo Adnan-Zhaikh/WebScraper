@@ -50,7 +50,7 @@ def parse_items(payload):
             "name": (it.get("title") or "").strip(),
             "url": f"{BASE}/{public}" if public else None,
             "type": it.get("type"),
-            "starts_at": it.get("start_date"),
+            "starts_at": None,
             "ends_at": it.get("end_date"),
             "is_online": 1 if (it.get("region") == "online" or it.get("is_online")) else 0,
             "participants_count": it.get("registerCount") or 0,
@@ -64,8 +64,29 @@ def parse_items(payload):
             "location_raw": it.get("region") or None,
             "in_india": 0 if (it.get("region") or "").lower() in ("online",) and False else 1,
             "source": "unstop",
+            
+            
         })
+
     return rows, data.get("total"), data.get("last_page")
+
+
+def classify(it):
+    region = (it.get("region") or "").strip().lower()
+    addr = it.get("address_with_country_logo")
+    city = addr.get("city") if isinstance(addr, dict) else None
+
+    if region == "offline":
+        return 0, 1, city          # in person, in India
+    if region == "hybrid":
+        return 0, 1, city          # in person + online, treat as in person
+    if region == "india":
+        return 1, 1, city          # online, India-only audience
+    if region == "global":
+        return 1, 0, city          # online, worldwide
+    return 1, 0, city              # online, specific — no venue
+
+
 
 def main():
     conn = sqlite3.connect(DB)

@@ -77,6 +77,13 @@ def hackathons(status: str | None = None, online: bool | None = None):
     sql = """SELECT name, url, starts_at, ends_at, is_online, city, location_raw,
                 in_india, participants_count, themes, status
          FROM hackathons WHERE 1=1"""
+    sql = """SELECT name, url, starts_at, ends_at, is_online, city, location_raw,
+                in_india, participants_count, themes, status, source
+         FROM hackathons
+         WHERE (ends_at IS NULL OR ends_at >= date('now'))
+           AND (:source = '' OR source = :source)"""
+    
+
 
     params = []
     if status:

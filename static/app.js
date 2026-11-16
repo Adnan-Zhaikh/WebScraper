@@ -8,35 +8,43 @@ const NEAR_MUMBAI = ["mumbai","navi mumbai","thane","pune","panvel","kalyan","va
 const isNearMumbai = h => {
   const t = `${h.city || ""} ${h.location_raw || ""}`.toLowerCase();
   return NEAR_MUMBAI.some(c => t.includes(c));
+
 };
 
 const intCard = i => `
-  <div class="card">
-    <h3><a href="${i.url}" target="_blank" rel="noopener">${i.title}</a></h3>
-    <div class="co">${i.company || "—"}</div>
-    <div class="meta">
-      <span class="pill">${fmt(i.location)}</span>
-      <span class="pill pay">${fmt(i.stipend)}</span>
-      ${i.duration ? `<span class="pill">${fmt(i.duration)}</span>` : ""}
-    </div>
-  </div>`;
+<div class="card">
+<h3><a href="${i.url}" target="_blank" rel="noopener">${i.title}</a></h3>
+<div class="co">${i.company || "—"}</div>
+<div class="meta">
+<span class="pill">${fmt(i.location)}</span>
+<span class="pill pay">${fmt(i.stipend)}</span>
+${i.duration ? `<span class="pill">${fmt(i.duration)}</span>` : ""}
+</div>
+</div>`;
 
 const hackCard = h => `
-  <div class="card">
-    <h3><a href="${h.url}" target="_blank" rel="noopener">${h.name}</a></h3>
-    <div class="co">${h.is_online ? "Online" : (h.city || h.location_raw || "Location TBA")} · ${h.status}</div>
-    <div class="meta">
-      <span class="pill">${h.is_online ? "Remote" : "In person"}</span>
-      <span class="pill">${date(h.starts_at)}</span>
-      <span class="pill pay">${h.participants_count} registered</span>
-      ${h.themes && h.themes !== "No Restrictions" ? `<span class="pill">${h.themes}</span>` : ""}
-    </div>
-  </div>`;
+<div class="card">
+<h3><a href="${h.url}" target="_blank" rel="noopener">${h.name}</a></h3>
+<div class="co">${h.is_online ? "Online" : (h.city || h.location_raw || "Location TBA")} · ${h.status}</div>
+<div class="meta">
+<span class="pill">${h.is_online ? "Remote" : "In person"}</span>
+<span class="pill">${date(h.starts_at)}</span>
+<span class="pill pay">${h.participants_count} registered</span>
+${h.themes && h.themes !== "No Restrictions" ? `<span class="pill">${h.themes}</span>` : ""}
+</div>
+</div>`;
+const when = h => {
+  if (h.starts_at && h.ends_at) return `${date(h.starts_at)} – ${date(h.ends_at)}`;
+  if (h.starts_at) return date(h.starts_at);
+  if (h.ends_at) return `ends ${date(h.ends_at)}`;
+  return "Date TBA";
+};
+
 
 const section = (title, count, inner) => `
-  <section class="block">
-    <h2>${title} <span class="count">${count}</span></h2>
-    ${inner}
+<section class="block">
+<h2>${title} <span class="count">${count}</span></h2>
+${inner}
   </section>`;
 
 const grid = (items, render, empty) =>
@@ -51,14 +59,14 @@ async function internshipsView() {
   const mumbai = ints.filter(i => isMumbai(i) && !isRemote(i));
 
   return `
-    <header class="page-head">
-      <h1>Internships</h1>
-      <p class="sub">${ints.length} listings · Internshala</p>
-      <button id="refresh" class="fbtn">Refresh data</button>
-      <span id="refresh-msg" class="sub"></span>
-    </header>
-    ${section("Mumbai", mumbai.length, grid(mumbai, intCard, "No Mumbai internships right now."))}
-    ${section("Remote", remote.length, grid(remote, intCard, "No remote internships right now."))}
+  <header class="page-head">
+  <h1>Internships</h1>
+  <p class="sub">${ints.length} listings · Internshala</p>
+  <button id="refresh" class="fbtn">Refresh data</button>
+  <span id="refresh-msg" class="sub"></span>
+  </header>
+  ${section("Mumbai", mumbai.length, grid(mumbai, intCard, "No Mumbai internships right now."))}
+  ${section("Remote", remote.length, grid(remote, intCard, "No remote internships right now."))}
   `;
 }
 
@@ -68,11 +76,12 @@ async function hackathonsView() {
   const hacks = await fetch("/api/hackathons").then(r => r.json());
 
   return `
-    <header class="page-head">
-      <h1>Hackathons</h1>
-      <p class="sub">${hacks.length} events · Devfolio</p>
-    </header>
-    <div class="filters" id="hack-filters">
+  <header class="page-head">
+  <h1>Hackathons</h1>
+  <p class="sub">${hacks.length} events · Devfolio</p>
+  </header>
+  <div class="filters" id="hack-filters">
+  <button class="fbtn" data-f="devfolio">Devfolio only</button>
       <button class="fbtn on" data-f="all">All</button>
       <button class="fbtn" data-f="online">Online</button>
       <button class="fbtn" data-f="mumbai">Near Mumbai</button>
