@@ -2,6 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Mumbai Internships & Hackathons</title>
 <link rel="stylesheet" href="/static/style.css">
 </head>
@@ -11,6 +12,10 @@
   <div class="links">
     <a href="/" data-page="internships">Internships</a>
     <a href="/hackathons" data-page="hackathons">Hackathons</a>
+  </div>
+  <div class="refresh-box">
+    <span id="refresh-msg" class="sub" aria-live="polite"></span>
+    <button id="refresh" class="fbtn" type="button">Refresh data</button>
   </div>
 </nav>
 <main id="app"></main>
